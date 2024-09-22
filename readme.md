@@ -9,6 +9,13 @@
 
    -v is debug/verbose output.
 
+**Note:**
+
+	Multiple groups in OBJ will be turned into a single group in RSD.
+	If you use a texture, you have to have it converted correctly to TIM using the same filename from the .mtl file (map_Kd tag) - some old programs require it to be a DOS 8.3 filename. 
+
+
+
 
 **Supported RSD output:**
 
@@ -24,7 +31,6 @@
 	Gradient filled polygon no texture
 
 
-**Multiple groups in OBJ will be turned into a single group in RSD.**
 
 
 RSD2OBJ.exe was built with:

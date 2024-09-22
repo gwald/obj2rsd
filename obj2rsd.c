@@ -356,7 +356,7 @@ int process_primative(int vert_UV_normal, char *line)
 	//V1
 	pch = strtok (str_p," /");
 	// printf("\n pch: %s\n", pch);
-	f = atof(pch ) ;
+	f = (float) strtod(pch , NULL);
 	// printf("float: %.4f\n", f);
 	// mesh->verts[vert_length].x = NUM_MUL number;
 	v.x  = f;
@@ -364,7 +364,7 @@ int process_primative(int vert_UV_normal, char *line)
 	//V2
 	pch = strtok (NULL," /");
 	// printf("\n pch: %s\n", pch);
-	f = atof(pch ) ;
+	f =  (float) strtod(pch, NULL);
 	// printf("float: %.4f\n", f);
 	// mesh->verts[vert_length].x = NUM_MUL number;
 	v.y = f;
@@ -372,12 +372,16 @@ int process_primative(int vert_UV_normal, char *line)
 
 	//V3
 	pch = strtok (NULL," /");
-	// printf("\n pch: %s\n", pch);
-	f = atof(pch ) ;
-	// printf("float: %.4f\n", f);
-	// mesh->verts[vert_length].x = NUM_MUL number;
-	v.z  = f;
-
+	if(pch)
+	{
+		// printf("\n pch: %s\n", pch);
+		f =  (float)  strtod(pch, NULL);
+		// printf("float: %.4f\n", f);
+		// mesh->verts[vert_length].x = NUM_MUL number;
+		v.z  = f;
+	}
+	else
+		v.z = 0.0;
 
 	if(g_verbose)
 		printf("%.4f, %.4f, %.4f\n",v.x ,v.y, v.z );
@@ -453,10 +457,10 @@ int process_face(char *line)
 #endif
 
 
-							int i,
-							f1, f2, f3, f4,
-							t1, t2, t3, t4,
-							n1, n2, n3, n4;
+							int i, place=0,slot=0,
+							vert[4]={0},
+							text[4]={0},
+							norm[4]={0};
 
 					char *str_p;
 					char *pch;
@@ -464,84 +468,60 @@ int process_face(char *line)
 
 
 
+
 					str_p = trim(line);
-					//  f v/vt/vn v/vt/vn v/vt/vn v/vt/vn
-					//V1 f
-					pch = strtok (str_p," /");
-					// printf("\n pch: %s\n", pch);
-					f1 = atoi(pch ) ;
 
-					//V1 t
-					pch = strtok (NULL," /");
-					// printf("\n pch: %s\n", pch);
-					t1 = atoi(pch ) ;
-
-					//V1 n
-					pch = strtok (NULL," /");
-					// printf("\n pch: %s\n", pch);
-					n1 = atoi(pch ) ;
+					for(i=0;i<strlen(str_p);) // count quad 8 or 6 for 3 values  t 4 3 for only 2
+					{
 
 
+						switch(place)
+						{
+						case 0:
+							vert[slot] = atoi(&str_p[i]) ;
+							break;
 
 
+						case 1:
+							text[slot] = atoi(&str_p[i]) ;
+							break;
 
 
+						case 2:
+							norm[slot] = atoi(&str_p[i]) ;
+							break;
+
+						}
 
 
-					//  f v/vt/vn v/vt/vn v/vt/vn v/vt/vn
-					//V2 f
-					pch = strtok (NULL," /");
-					// printf("\n pch: %s\n", pch);
-					f2 = atoi(pch ) ;
-
-					//V2 t
-					pch = strtok (NULL," /");
-					// printf("\n pch: %s\n", pch);
-					t2 = atoi(pch ) ;
-
-					//V2 n
-					pch = strtok (NULL," /");
-					// printf("\n pch: %s\n", pch);
-					n2 = atoi(pch ) ;
+						while(str_p[i]>47 && str_p[i]<58) // between 0-9
+							i++;
 
 
 
+						if(isspace(str_p[i]))
+						{
 
-					//  f v/vt/vn v/vt/vn v/vt/vn v/vt/vn
-					//V3 f
-					pch = strtok (NULL," /");
-					// printf("\n pch: %s\n", pch);
-					f3 = atoi(pch ) ;
+							while(isspace(str_p[i]))
+								i++;
 
-					//V3 t
-					pch = strtok (NULL," /");
-					// printf("\n pch: %s\n", pch);
-					t3 = atoi(pch ) ;
+							place=0;
+							slot++;
 
-					//V3 n
-					pch = strtok (NULL," /");
-					// printf("\n pch: %s\n", pch);
-					n3 = atoi(pch ) ;
+							continue;
+						}
 
 
+						if(str_p[i]='/')
+						{
+							place++;
+							i++;
+							continue;
+						}
 
 
-					//  f v/vt/vn v/vt/vn v/vt/vn v/vt/vn
-					//V4 f
-					pch = strtok (NULL," /");
-					// printf("\n pch: %s\n", pch);
-					f4 = atoi(pch ) ;
 
-					//V4 t
-					pch = strtok (NULL," /");
-					// printf("\n pch: %s\n", pch);
-					t4 = atoi(pch ) ;
-
-					//V4 n
-					pch = strtok (NULL," /");
-					// printf("\n pch: %s\n", pch);
-					n4 = atoi(pch ) ;
-
+					}
 
 
 
@@ -549,7 +529,12 @@ int process_face(char *line)
 
 
 					if(g_verbose)
-						printf("%d, %d, %d, %d\n",f1, f2, f3, f4 );
+					{
+						printf("%s\n",line);
+						printf("verts: %d, %d, %d, %d\n",vert[0], vert[1], vert[2], vert[3] );
+						printf("norm: %d, %d, %d, %d\n",norm[0], norm[1], norm[2], norm[3] );
+						printf("text: %d, %d, %d, %d\n",text[0], text[1], text[2], text[3] );
+					}
 
 
 
@@ -559,20 +544,20 @@ int process_face(char *line)
 
 
 
-					g_face_arr[g_total_faces].pnt[0].vert = f1-1;
-					g_face_arr[g_total_faces].pnt[1].vert = f2-1;
-					g_face_arr[g_total_faces].pnt[2].vert = f3-1;
-					g_face_arr[g_total_faces].pnt[3].vert = f4-1;
+					g_face_arr[g_total_faces].pnt[0].vert = vert[0]-1;
+					g_face_arr[g_total_faces].pnt[1].vert = vert[1]-1;
+					g_face_arr[g_total_faces].pnt[2].vert = vert[2]-1;
+					g_face_arr[g_total_faces].pnt[3].vert = vert[3]-1;
 
-					g_face_arr[g_total_faces].pnt[0].normal = n1;
-					g_face_arr[g_total_faces].pnt[1].normal = n2;
-					g_face_arr[g_total_faces].pnt[2].normal = n3;
-					g_face_arr[g_total_faces].pnt[3].normal = n4;
+					g_face_arr[g_total_faces].pnt[0].normal = norm[0];
+					g_face_arr[g_total_faces].pnt[1].normal = norm[1];
+					g_face_arr[g_total_faces].pnt[2].normal = norm[2];
+					g_face_arr[g_total_faces].pnt[3].normal = norm[3];
 
-					g_face_arr[g_total_faces].pnt[0].uv = t1-1;
-					g_face_arr[g_total_faces].pnt[1].uv = t2-1;
-					g_face_arr[g_total_faces].pnt[2].uv = t3-1;
-					g_face_arr[g_total_faces].pnt[3].uv = t4-1;
+					g_face_arr[g_total_faces].pnt[0].uv = text[0]-1;
+					g_face_arr[g_total_faces].pnt[1].uv = text[1]-1;
+					g_face_arr[g_total_faces].pnt[2].uv = text[2]-1;
+					g_face_arr[g_total_faces].pnt[3].uv = text[3]-1;
 
 
 					g_face_arr[g_total_faces].mtl = g_current_mtl;
@@ -1525,7 +1510,7 @@ int g_mtl_count;
 			continue;// blank line or comment
 
 
-	//	LOG("%s\n", mat_line);
+		//	LOG("%s\n", mat_line);
 
 
 
@@ -1712,11 +1697,11 @@ int main(int argc, char *argv[])
 			p++;
 			p++;
 			if(g_verbose)
-				{
+			{
 				printf("Scale %s\n",p);
 				fflush(0);
-				}
-			g_scale = (float) atof(p);
+			}
+			g_scale = (float) strtod(p, NULL);
 		}
 
 	}
@@ -1732,11 +1717,11 @@ int main(int argc, char *argv[])
 			p++;
 			p++;
 			if(g_verbose)
-						{
-						printf("Scale %s\n",p);
-						fflush(0);
-						}
-			g_scale = (float) atof(p);
+			{
+				printf("Scale %s\n",p);
+				fflush(0);
+			}
+			g_scale = (float) strtod(p, NULL);
 		}
 
 
@@ -1793,6 +1778,7 @@ int main(int argc, char *argv[])
 		{
 			str_p = trim(str_p+strlen( "mtllib"));
 			mtllib(str_p);
+			break;
 
 		}
 
@@ -1855,6 +1841,7 @@ int main(int argc, char *argv[])
 	rewind(obj_fp);
 	linestotal=0;
 	g_current_mtl = 0; // default first entry
+
 	if(g_verbose)
 		LOG("Processing all faces...\n");
 
@@ -1883,7 +1870,7 @@ int main(int argc, char *argv[])
 			str_p = trim(str_p+strlen( "usemtl"));
 
 			if(g_verbose)
-				printf("line: %d <%s> ", linestotal,str_p);
+				printf("line: %d <%s> \n", linestotal,str_p);
 
 			//g_current_mtl=g_mtl_count
 			for(j=0; j<g_mtl_count; j++)
@@ -1916,8 +1903,8 @@ int main(int argc, char *argv[])
 
 
 
-	 if(g_verbose)
-	LOG("OBJ Stats- Verts: %d UVs: %d Normals: %d Faces: %d\n", g_total_verts, g_total_UVs, g_total_normals, g_total_faces);
+	if(g_verbose)
+		LOG("OBJ Stats- Verts: %d UVs: %d Normals: %d Faces: %d\n", g_total_verts, g_total_UVs, g_total_normals, g_total_faces);
 
 
 
