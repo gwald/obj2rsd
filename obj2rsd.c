@@ -196,7 +196,7 @@ long file_length(FILE *handle)
 
 
 
-int LOG(char *format, ...)
+int print(char *format, ...)
 {
 	va_list args; // Declare a va_list variable to manage the variable arguments
 
@@ -217,7 +217,7 @@ int LOG(char *format, ...)
 			else if (*format == 'f')
 			{
 				// Fetch the next argument as an integer and print it
-				// printf("%f", va_arg(args, float));
+				// print("%f", va_arg(args, float));
 			}
 			else if (*format == 's')
 			{
@@ -352,20 +352,20 @@ int process_primative(int vert_UV_normal, char *line)
 	float f;
 
 	str_p = trim(line);
-	// LOG("%s\n", line );
+	// print("%s\n", line );
 	//V1
 	pch = strtok (str_p," /");
-	// printf("\n pch: %s\n", pch);
+	// print("\n pch: %s\n", pch);
 	f = (float) strtod(pch , NULL);
-	// printf("float: %.4f\n", f);
+	// print("float: %.4f\n", f);
 	// mesh->verts[vert_length].x = NUM_MUL number;
 	v.x  = f;
 
 	//V2
 	pch = strtok (NULL," /");
-	// printf("\n pch: %s\n", pch);
+	// print("\n pch: %s\n", pch);
 	f =  (float) strtod(pch, NULL);
-	// printf("float: %.4f\n", f);
+	// print("float: %.4f\n", f);
 	// mesh->verts[vert_length].x = NUM_MUL number;
 	v.y = f;
 
@@ -374,9 +374,9 @@ int process_primative(int vert_UV_normal, char *line)
 	pch = strtok (NULL," /");
 	if(pch)
 	{
-		// printf("\n pch: %s\n", pch);
+		// print("\n pch: %s\n", pch);
 		f =  (float)  strtod(pch, NULL);
-		// printf("float: %.4f\n", f);
+		// print("float: %.4f\n", f);
 		// mesh->verts[vert_length].x = NUM_MUL number;
 		v.z  = f;
 	}
@@ -384,7 +384,7 @@ int process_primative(int vert_UV_normal, char *line)
 		v.z = 0.0;
 
 	if(g_verbose)
-		printf("%.4f, %.4f, %.4f\n",v.x ,v.y, v.z );
+		print("%.4f, %.4f, %.4f\n",v.x ,v.y, v.z );
 
 
 	/*
@@ -418,7 +418,7 @@ int process_primative(int vert_UV_normal, char *line)
 		break;
 
 	default:
-		printf("ERROR!! Process_primative() bad line type <%d> Line: <%s>\n",vert_UV_normal, line );
+		print("ERROR!! Process_primative() bad line type <%d> Line: <%s>\n",vert_UV_normal, line );
 		return -111;
 
 	}
@@ -530,10 +530,10 @@ int process_face(char *line)
 
 					if(g_verbose)
 					{
-						printf("%s\n",line);
-						printf("verts: %d, %d, %d, %d\n",vert[0], vert[1], vert[2], vert[3] );
-						printf("norm: %d, %d, %d, %d\n",norm[0], norm[1], norm[2], norm[3] );
-						printf("text: %d, %d, %d, %d\n",text[0], text[1], text[2], text[3] );
+						print("%s\n",line);
+						print("verts: %d, %d, %d, %d\n",vert[0], vert[1], vert[2], vert[3] );
+						print("norm: %d, %d, %d, %d\n",norm[0], norm[1], norm[2], norm[3] );
+						print("text: %d, %d, %d, %d\n",text[0], text[1], text[2], text[3] );
 					}
 
 
@@ -577,7 +577,7 @@ void delete_old_files(void)
 
 	if(ret)
 	{
-		// printf("ERROR: Can not remove %s\n", filename);
+		// print("ERROR: Can not remove %s\n", filename);
 		//exit(1);
 	}
 
@@ -588,7 +588,7 @@ void delete_old_files(void)
 
 	if(ret)
 	{
-		// printf("ERROR: Can not remove %s\n", filename);
+		// print("ERROR: Can not remove %s\n", filename);
 		//exit(1);
 	}
 
@@ -599,7 +599,7 @@ void delete_old_files(void)
 
 	if(ret)
 	{
-		// printf("ERROR: Can not remove %s\n", filename);
+		// print("ERROR: Can not remove %s\n", filename);
 		//exit(1);
 	}
 
@@ -610,7 +610,7 @@ void delete_old_files(void)
 
 	if(ret)
 	{
-		// printf("ERROR: Can not remove %s\n", filename);
+		// print("ERROR: Can not remove %s\n", filename);
 		//exit(1);
 	}
 
@@ -647,7 +647,7 @@ TEX[0]=new0.tim
 	{
 
 		//fail
-		printf("Could not create file <%s>\n",filename);
+		print("Could not create file <%s>\n",filename);
 		return 999;
 	}
 
@@ -696,32 +696,31 @@ TEX[0]=new0.tim
 
 				}
 			}
-
-
-
-			sprintf(line, "NTEX=%d\n",cnt);
-			fwrite(line,  strlen(line),1, RSD_fp ); //write size with the same alignment
-
-			if(cnt)
-			{
-				fwrite(string,  strlen(string),1, RSD_fp ); //write size with the same alignment
-			}
-			else
-			{
-				sprintf(line, "TEX[%d]=\n",0);
-				fwrite(line,  strlen(line),1, RSD_fp ); //write size with the same alignment
-			}
-
-
-
 		}
+
+
+
+		sprintf(line, "NTEX=%d\n",cnt);
+		fwrite(line,  strlen(line),1, RSD_fp ); //write size with the same alignment
+
+		if(cnt)
+		{
+			fwrite(string,  strlen(string),1, RSD_fp ); //write size with the same alignment
+		}
+		else
+		{
+			sprintf(line, "TEX[%d]=\n",0);
+			fwrite(line,  strlen(line),1, RSD_fp ); //write size with the same alignment
+		}
+
+
 
 	}
 
 	fflush(RSD_fp);
 	fclose(RSD_fp);
 
-	printf("%s created correctly.\n", filename);
+	print("%s created correctly.\n", filename);
 
 
 
@@ -763,7 +762,7 @@ faces 1 1
 	{
 
 		//fail
-		printf("Could not create file <%s>\n",filename);
+		print("Could not create file <%s>\n",filename);
 		return 999;
 	}
 
@@ -785,7 +784,7 @@ faces 1 1
 	fflush(GRP_fp);
 	fclose(GRP_fp);
 
-	printf("%s created correctly.\n", filename);
+	print("%s created correctly.\n", filename);
 
 }
 
@@ -827,7 +826,7 @@ int create_PLY(void)
 	{
 
 		//fail
-		printf("Could not create file <%s>\n",filename);
+		print("Could not create file <%s>\n",filename);
 		return 999;
 	}
 
@@ -1112,7 +1111,7 @@ g_scale=20.0;
 	fflush(PLY_fp);
 	fclose(PLY_fp);
 
-	printf("%s created correctly.\n", filename);
+	print("%s created correctly.\n", filename);
 
 }
 
@@ -1152,7 +1151,7 @@ int create_MAT(void)
 	{
 
 		//fail
-		printf("Could not create file <%s>\n",filename);
+		print("Could not create file <%s>\n",filename);
 		return 999;
 	}
 
@@ -1303,18 +1302,18 @@ int create_MAT(void)
 					v4= 0.0;
 					if(g_verbose)
 					{
-						LOG("%d UV0 %d  UV1 %d  UV2 %d  UV3 %d \n",i,
+						print("%d UV0 %d  UV1 %d  UV2 %d  UV3 %d \n",i,
 								g_face_arr[i].pnt[0].uv,
 								g_face_arr[i].pnt[1].uv,
 								g_face_arr[i].pnt[2].uv,
 								g_face_arr[i].pnt[3].uv );
 
 #if 0
-						printf("U %f V %f ", u1, v1);
-						printf("U %f V %f ", u2, v2);
+						print("U %f V %f ", u1, v1);
+						print("U %f V %f ", u2, v2);
 
-						printf("U %f V %f ", u3, v3);
-						printf("U %f V %f \n", u4, v4);
+						print("U %f V %f ", u3, v3);
+						print("U %f V %f \n", u4, v4);
 						fflush(0);
 #endif
 					}
@@ -1438,7 +1437,7 @@ int create_MAT(void)
 			fflush(MAT_fp);
 			fclose(MAT_fp);
 
-			printf("%s created correctly.\n", filename);
+			print("%s created correctly.\n", filename);
 
 }
 
@@ -1452,7 +1451,7 @@ int mtllib(char *filename)
 	char *str_p;
 
 	if(g_verbose)
-		LOG("Processing mtllib file <%s>\n",filename);
+		print("Processing mtllib file <%s>\n",filename);
 
 
 	mat_fp = fcaseopen(filename, "rb");
@@ -1460,7 +1459,7 @@ int mtllib(char *filename)
 	{
 
 		//fail
-		printf("Could not open mtllib file <%s>\n",filename);
+		print("Could not open mtllib file <%s>\n",filename);
 		return 999;
 	}
 
@@ -1468,7 +1467,7 @@ int mtllib(char *filename)
 	file_size = file_length(mat_fp);
 
 	if(g_verbose)
-		printf("mtllib file <%s> opened, size %d\n", filename, file_size);
+		print("mtllib file <%s> opened, size %d\n", filename, file_size);
 
 	g_mtl_count=-1;
 
@@ -1510,7 +1509,7 @@ int g_mtl_count;
 			continue;// blank line or comment
 
 
-		//	LOG("%s\n", mat_line);
+		//	print("%s\n", mat_line);
 
 
 
@@ -1526,7 +1525,7 @@ int g_mtl_count;
 			str_p = trim(str_p+strlen( "newmtl"));
 
 			if(g_verbose)
-				LOG("Processing newmtl: <%s> <%d>\n", str_p, g_mtl_count);
+				print("Processing newmtl: <%s> <%d>\n", str_p, g_mtl_count);
 
 			g_mtl_arr[g_mtl_count].newmtl = malloc(strlen(str_p)+1);
 			strcpy(g_mtl_arr[g_mtl_count].newmtl ,str_p);
@@ -1549,17 +1548,17 @@ int g_mtl_count;
 
 
 				pch = strtok (str_p,"x");
-				// printf("\n pch: %s\n", pch);
+				// print("\n pch: %s\n", pch);
 				w = atoi(pch ) ;
 
 
 				pch = strtok (NULL,"x");
-				// printf("\n pch: %s\n", pch);
+				// print("\n pch: %s\n", pch);
 				h = atoi(pch ) ;
 
 
 				pch = strtok (NULL,"x");
-				// printf("\n pch: %s\n", pch);
+				// print("\n pch: %s\n", pch);
 				d = atoi(pch ) ;
 
 				g_mtl_arr[g_mtl_count].tim_height=h;
@@ -1599,7 +1598,7 @@ int g_mtl_count;
 
 			if(g_mtl_count==-1)
 			{
-				printf("ERROR: File %s - Sections must start with newmtl.\n", filename);
+				print("ERROR: File %s - Sections must start with newmtl.\n", filename);
 				return 999;
 
 			}
@@ -1614,7 +1613,7 @@ int g_mtl_count;
 			}
 
 			if(g_verbose)
-				LOG("g_TEXT_count: %d file <%s>\n", g_mtl_count, g_mtl_arr[g_mtl_count].map_Kd);
+				print("g_TEXT_count: %d file <%s>\n", g_mtl_count, g_mtl_arr[g_mtl_count].map_Kd);
 
 
 			continue;
@@ -1630,14 +1629,14 @@ int g_mtl_count;
 
 			if(g_mtl_count==-1)
 			{
-				printf("ERROR: File %s - Sections must start with newmtl.\n", filename);
+				print("ERROR: File %s - Sections must start with newmtl.\n", filename);
 				return 999;
 
 			}
 			str_p = trim(str_p+strlen( "Kd"));
 
 			if(g_verbose)
-				LOG("Processing Kd: <%s> <%d>\n", str_p, g_mtl_count);
+				print("Processing Kd: <%s> <%d>\n", str_p, g_mtl_count);
 
 
 			sscanf(str_p, "%f %f %f",
@@ -1668,7 +1667,7 @@ int main(int argc, char *argv[])
 	g_scale = 1.0;
 	g_current_mtl=g_mtl_count=linestotal=g_verbose =0;
 
-	printf("\n%s\nobj2rsd obj [-s1.0] [-v]\n"
+	print("\n%s\nobj2rsd obj [-s1.0] [-v]\n"
 			"  obj is your .obj 3D model file\n"
 			"   -s1.0 is a float value to scale model up or down, default is no scale 1.0.\n"
 			"   -v is debug/verbose output.\n"
@@ -1680,10 +1679,32 @@ int main(int argc, char *argv[])
 
 	strcpy(g_filename, argv[1]);
 
+
+	//get just the filename- remove everything else
+	while(strstr(g_filename, "\\"))
+	{
+		strcpy(g_filename,  strstr(g_filename, "\\")+1 ); // remove folder location
+	}
+
+	while(strstr(g_filename, "/"))
+	{
+		strcpy(g_filename,  strstr(g_filename, "/")+1); // remove folder location
+	}
+
 	if(strstr(g_filename, "."))
 	{
 		*strstr(g_filename, ".") = 0; // remove .obj
 	}
+
+
+	if(strlen(g_filename) > 7)
+	{
+		print("WARNING! Filename: <%s> is bigger than 8 char... trimming\n", g_filename);
+		g_filename[8] = 0; // remove .obj
+		print("New output Filename: <%s> \n", g_filename);
+
+	}
+
 
 	//first check for verbose mode
 	if( argc > 2)
@@ -1698,7 +1719,7 @@ int main(int argc, char *argv[])
 			p++;
 			if(g_verbose)
 			{
-				printf("Scale %s\n",p);
+				print("Scale %s\n",p);
 				fflush(0);
 			}
 			g_scale = (float) strtod(p, NULL);
@@ -1718,8 +1739,7 @@ int main(int argc, char *argv[])
 			p++;
 			if(g_verbose)
 			{
-				printf("Scale %s\n",p);
-				fflush(0);
+				print("Scale %s\n",p);
 			}
 			g_scale = (float) strtod(p, NULL);
 		}
@@ -1735,7 +1755,7 @@ int main(int argc, char *argv[])
 	{
 
 		//fail
-		printf("Could not open file <%s>\n", argv[1]);
+		print("Could not open file <%s>\n", argv[1]);
 		return 999;
 	}
 
@@ -1745,13 +1765,13 @@ int main(int argc, char *argv[])
 	obj_size = file_length(obj_fp);
 
 	if(g_verbose)
-		LOG("File <%s> opened, size %d\n", argv[1], obj_size);
+		print("File <%s> opened, size %d\n", argv[1], obj_size);
 
 
 	// fread((char *)obj_buffer, obj_size, 1, obj_fp);
 
 	if(g_verbose)
-		LOG("Processing mtllib files...\n");
+		print("Processing mtllib files...\n");
 
 	// do mtllib files.
 	while( !feof(obj_fp) )
@@ -1792,7 +1812,7 @@ int main(int argc, char *argv[])
 	linestotal=0;
 
 	if(g_verbose)
-		LOG("Storing all verts, UVs and normals...\n");
+		print("Storing all verts, UVs and normals...\n");
 
 	// process all primatives.
 	while( !feof(obj_fp) )
@@ -1815,21 +1835,21 @@ int main(int argc, char *argv[])
 		{
 
 			if(g_verbose)
-				printf("line: %d %s Vert: ", linestotal,str_p);
+				print("line: %d %s Vert: ", linestotal,str_p);
 
 			process_primative(V_TYPE, str_p+2);
 		}
 		else if(str_p[0] == 'v' && str_p[1] == 't')
 		{
 			if(g_verbose)
-				printf("line: %d %s UV: ",  linestotal,str_p);
+				print("line: %d %s UV: ",  linestotal,str_p);
 
 			process_primative(VT_TYPE, str_p+2);
 		}
 		else if(str_p[0] == 'v' && str_p[1] == 'n')
 		{
 			if(g_verbose)
-				printf("line: %d %s Normal: ", linestotal, str_p);
+				print("line: %d %s Normal: ", linestotal, str_p);
 
 			process_primative(VN_TYPE, str_p+2);
 		}
@@ -1843,7 +1863,7 @@ int main(int argc, char *argv[])
 	g_current_mtl = 0; // default first entry
 
 	if(g_verbose)
-		LOG("Processing all faces...\n");
+		print("Processing all faces...\n");
 
 	// process all faces.
 	while( !feof(obj_fp) )
@@ -1870,7 +1890,7 @@ int main(int argc, char *argv[])
 			str_p = trim(str_p+strlen( "usemtl"));
 
 			if(g_verbose)
-				printf("line: %d <%s> \n", linestotal,str_p);
+				print("line: %d <%s> \n", linestotal,str_p);
 
 			//g_current_mtl=g_mtl_count
 			for(j=0; j<g_mtl_count; j++)
@@ -1904,7 +1924,7 @@ int main(int argc, char *argv[])
 
 
 	if(g_verbose)
-		LOG("OBJ Stats- Verts: %d UVs: %d Normals: %d Faces: %d\n", g_total_verts, g_total_UVs, g_total_normals, g_total_faces);
+		print("OBJ Stats- Verts: %d UVs: %d Normals: %d Faces: %d\n", g_total_verts, g_total_UVs, g_total_normals, g_total_faces);
 
 
 

@@ -11,8 +11,9 @@
 
 **Note:**
 
-	Multiple groups in OBJ will be turned into a single group in RSD.
-	If you use a texture, you have to have it converted correctly to TIM using the same filename from the .mtl file (map_Kd tag) - some old programs require it to be a DOS 8.3 filename. 
+	1) Multiple groups in OBJ will be turned into a single group in RSD.
+	2) If you use a texture, you have to have it converted correctly to TIM using the same filename from the .mtl file (map_Kd tag) - some old programs require it to be a DOS 8.3 filename.
+	3) Output Filename will be the input filename and if it's greater than 8 chars it will be trimmed. 
 
 
 
