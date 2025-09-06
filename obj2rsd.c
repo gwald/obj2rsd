@@ -1,7 +1,7 @@
 /*
  ============================================================================
  Name        : obj2rsd.c
- Author      : 
+ Author      :
  Version     :
  Copyright   : Your copyright notice
  Description : Hello World in C, Ansi-style
@@ -19,6 +19,9 @@
 
 #include <unistd.h>
 #include <ctype.h>
+
+
+
 
 void casechdir(char const *path)
 {
@@ -217,7 +220,8 @@ int print(char *format, ...)
 			else if (*format == 'f')
 			{
 				// Fetch the next argument as an integer and print it
-				// print("%f", va_arg(args, float));
+				// printf("%f", va_arg(args, float));
+				printf("%f", va_arg(args, int));
 			}
 			else if (*format == 's')
 			{
@@ -260,8 +264,7 @@ int print(char *format, ...)
 
 #define TOTAL_MAX_TIM_FILES
 #define  TOTAL_MAX_PRIMATIVE_SIZE 1500000
-#define OBJ2RSD_VERSION "OBJ2RSD - Wavefront .obj to PSX .rsd - Aug 2024 - First buggy version."
-
+#define OBJ2RSD_VERSION "OBJ2RSD - Wavefront .obj to PSX .rsd - Sept 2025 - Vert colour version."
 
 
 // Obj info form https://paulbourke.net/dataformats/obj/
@@ -287,23 +290,39 @@ int g_mtl_count;
 
 
 int g_current_mtl;
+typedef struct {
+	float r,g,b,a;
+} col_rgba;
 
 
 
+#ifdef __TINYC__
+typedef union {
+	uint64_t bits[2]; // 128 bits = 16 bytes
+	col_rgba col;
+}col;
 
+#else
+typedef union {
+	__int128 bits[2]; // 128 bits = 16 bytes
+	col_rgba col;
+}col;
+
+#endif
 
 // typedef float vert[3];
 
 typedef struct vert_s
 {
 	float x,y,z; // no w needed
+	col rgba;
 
 }vert;
 
 // f v/vt/vn v/vt/vn v/vt/vn v/vt/vn
 typedef struct point_s
 {
-	int vert, uv, normal; // no w needed
+	int vert, uv, col, normal; // no w needed
 
 
 }point;
@@ -325,11 +344,16 @@ vert g_vert_arr[TOTAL_MAX_PRIMATIVE_SIZE];
 int g_total_UVs;
 vert g_UV_arr[TOTAL_MAX_PRIMATIVE_SIZE];
 
+
+int g_total_cols;
+vert g_col_arr[TOTAL_MAX_PRIMATIVE_SIZE];
+
+
 int g_total_normals;
 vert g_normals_arr[TOTAL_MAX_PRIMATIVE_SIZE];
 
 int g_total_faces;
-face g_face_arr[TOTAL_MAX_PRIMATIVE_SIZE]={0};
+face g_face_arr[TOTAL_MAX_PRIMATIVE_SIZE]={-1};
 
 
 //Primitives
@@ -345,27 +369,29 @@ face g_face_arr[TOTAL_MAX_PRIMATIVE_SIZE]={0};
 int process_primative(int vert_UV_normal, char *line)
 {
 
-	vert v;
+	vert v={0};
 	int i;
 	char *str_p;
 	char *pch;
 	float f;
 
 	str_p = trim(line);
-	// print("%s\n", line );
+	// printf("%s\n", line );
+
+
 	//V1
 	pch = strtok (str_p," /");
-	// print("\n pch: %s\n", pch);
+	// printf("\n pch: %s\n", pch);
 	f = (float) strtod(pch , NULL);
-	// print("float: %.4f\n", f);
+	// printf("float: %f\n", f);
 	// mesh->verts[vert_length].x = NUM_MUL number;
 	v.x  = f;
 
 	//V2
 	pch = strtok (NULL," /");
-	// print("\n pch: %s\n", pch);
+	// printf("\n pch: %s\n", pch);
 	f =  (float) strtod(pch, NULL);
-	// print("float: %.4f\n", f);
+	// printf("float: %f\n", f);
 	// mesh->verts[vert_length].x = NUM_MUL number;
 	v.y = f;
 
@@ -374,9 +400,9 @@ int process_primative(int vert_UV_normal, char *line)
 	pch = strtok (NULL," /");
 	if(pch)
 	{
-		// print("\n pch: %s\n", pch);
+		// printf("\n pch: %s\n", pch);
 		f =  (float)  strtod(pch, NULL);
-		// print("float: %.4f\n", f);
+		// printf("float: %f\n", f);
 		// mesh->verts[vert_length].x = NUM_MUL number;
 		v.z  = f;
 	}
@@ -384,7 +410,7 @@ int process_primative(int vert_UV_normal, char *line)
 		v.z = 0.0;
 
 	if(g_verbose)
-		print("%.4f, %.4f, %.4f\n",v.x ,v.y, v.z );
+		printf("%f, %f, %f ",v.x ,v.y, v.z );
 
 
 	/*
@@ -400,6 +426,66 @@ int process_primative(int vert_UV_normal, char *line)
 		g_vert_arr[g_total_verts].x = v.x; // v.z * g_scale;
 		g_vert_arr[g_total_verts].y = v.y; // v.y * -g_scale;
 		g_vert_arr[g_total_verts].z = v.z; // v.x * g_scale;
+
+
+		// check for col
+
+		// R
+		pch = strtok (NULL," /");
+		if(pch)
+		{
+			// printf("\n pch: %s\n", pch);
+			f =  (float)  strtod(pch, NULL);
+			// printf("float: %f\n", f);
+			// mesh->verts[vert_length].x = NUM_MUL number;
+			v.rgba.col.r  = f;
+
+			// G
+			pch = strtok (NULL," /");
+			if(pch)
+			{
+				// printf("\n pch: %s\n", pch);
+				f =  (float)  strtod(pch, NULL);
+				// printf("float: %f\n", f);
+				// mesh->verts[vert_length].x = NUM_MUL number;
+				v.rgba.col.g  = f;
+			}
+
+
+			// B
+			pch = strtok (NULL," /");
+			if(pch)
+			{
+				// printf("\n pch: %s\n", pch);
+				f =  (float)  strtod(pch, NULL);
+				// printf("float: %f\n", f);
+				// mesh->verts[vert_length].x = NUM_MUL number;
+				v.rgba.col.b  = f;
+			}
+
+			// A
+			pch = strtok (NULL," /");
+			if(pch)
+			{
+				// printf("\n pch: %s\n", pch);
+				f =  (float)  strtod(pch, NULL);
+				// printf("float: %f\n", f);
+				// mesh->verts[vert_length].x = NUM_MUL number;
+				v.rgba.col.a  = f;
+			}
+			g_vert_arr[g_total_verts].rgba.col.r = v.rgba.col.r;
+			g_vert_arr[g_total_verts].rgba.col.g = v.rgba.col.g;
+			g_vert_arr[g_total_verts].rgba.col.b = v.rgba.col.b;
+			g_vert_arr[g_total_verts].rgba.col.a = v.rgba.col.a;
+
+
+
+			if(g_verbose)
+				printf(" RGBA %f, %f, %f, %f\n",v.rgba.col.r, v.rgba.col.g, v.rgba.col.b, v.rgba.col.a );
+
+		}
+
+
 		g_total_verts++;
 		break;
 
@@ -418,10 +504,15 @@ int process_primative(int vert_UV_normal, char *line)
 		break;
 
 	default:
-		print("ERROR!! Process_primative() bad line type <%d> Line: <%s>\n",vert_UV_normal, line );
+		printf("ERROR!! Process_primative() bad line type <%d> Line: <%s>\n",vert_UV_normal, line );
 		return -111;
 
 	}
+
+
+
+	if(g_verbose)
+		printf(" \n");
 
 
 }
@@ -530,10 +621,10 @@ int process_face(char *line)
 
 					if(g_verbose)
 					{
-						print("%s\n",line);
-						print("verts: %d, %d, %d, %d\n",vert[0], vert[1], vert[2], vert[3] );
-						print("norm: %d, %d, %d, %d\n",norm[0], norm[1], norm[2], norm[3] );
-						print("text: %d, %d, %d, %d\n",text[0], text[1], text[2], text[3] );
+						printf("%s\n",line);
+						printf("verts: %d, %d, %d, %d\n",vert[0], vert[1], vert[2], vert[3] );
+						printf("norm: %d, %d, %d, %d\n",norm[0], norm[1], norm[2], norm[3] );
+						printf("text: %d, %d, %d, %d\n",text[0], text[1], text[2], text[3] );
 					}
 
 
@@ -577,7 +668,7 @@ void delete_old_files(void)
 
 	if(ret)
 	{
-		// print("ERROR: Can not remove %s\n", filename);
+		// printf("ERROR: Can not remove %s\n", filename);
 		//exit(1);
 	}
 
@@ -588,7 +679,7 @@ void delete_old_files(void)
 
 	if(ret)
 	{
-		// print("ERROR: Can not remove %s\n", filename);
+		// printf("ERROR: Can not remove %s\n", filename);
 		//exit(1);
 	}
 
@@ -599,7 +690,7 @@ void delete_old_files(void)
 
 	if(ret)
 	{
-		// print("ERROR: Can not remove %s\n", filename);
+		// printf("ERROR: Can not remove %s\n", filename);
 		//exit(1);
 	}
 
@@ -610,7 +701,7 @@ void delete_old_files(void)
 
 	if(ret)
 	{
-		// print("ERROR: Can not remove %s\n", filename);
+		// printf("ERROR: Can not remove %s\n", filename);
 		//exit(1);
 	}
 
@@ -647,7 +738,7 @@ TEX[0]=new0.tim
 	{
 
 		//fail
-		print("Could not create file <%s>\n",filename);
+		printf("Could not create file <%s>\n",filename);
 		return 999;
 	}
 
@@ -720,7 +811,7 @@ TEX[0]=new0.tim
 	fflush(RSD_fp);
 	fclose(RSD_fp);
 
-	print("%s created correctly.\n", filename);
+	printf("%s created correctly.\n", filename);
 
 
 
@@ -762,7 +853,7 @@ faces 1 1
 	{
 
 		//fail
-		print("Could not create file <%s>\n",filename);
+		printf("Could not create file <%s>\n",filename);
 		return 999;
 	}
 
@@ -784,7 +875,7 @@ faces 1 1
 	fflush(GRP_fp);
 	fclose(GRP_fp);
 
-	print("%s created correctly.\n", filename);
+	printf("%s created correctly.\n", filename);
 
 }
 
@@ -826,7 +917,7 @@ int create_PLY(void)
 	{
 
 		//fail
-		print("Could not create file <%s>\n",filename);
+		printf("Could not create file <%s>\n",filename);
 		return 999;
 	}
 
@@ -1029,7 +1120,7 @@ g_scale=20.0;
 	NY fileformat.pdf pg11.
 	polygon group is composed of a flag for representing the type of a polygon, and eight parameters constituting the polygon.
 	The meaning of the parameters varies with the type of polygon specified in theflag
-	.Figure 1ñ6: PLY File Polygon Descriptor Flag Parameter #1 Parameter #2... Parameter #3
+	.Figure 1‚Äì6: PLY File Polygon Descriptor Flag Parameter #1 Parameter #2... Parameter #3
 	Flag bit configuration bit 7 (MSB) 0 (LSB) TYP Polygon (Triangle or Quadrangle)
 
 	The parameter section describes the vertices and normals for the polygon.
@@ -1037,17 +1128,17 @@ g_scale=20.0;
 	Normal values are a similar index into the normal group. For a polygon to be subjected to flat shading,
 	the normal of each vertex has the same value, and the value of the first vertex is adopted. For a polygon to be subjected
 	to smooth shading gourand, the normal of each vertex has a different value.The flag is a hexadecimal integer value
-	( although not prefixed with ì0xî, as would be expected) that specifies the type of polygon.
+	( although not prefixed with ‚Äú0x‚Äù, as would be expected) that specifies the type of polygon.
 
 	For a triangular polygon, the data for the fourth vertex and normal are assigned a value of zero.
 	For a quadrangular polygon, the vertices are described in the proper order so that the first three vertices form a triangle,
 	and the second through fourth vertices form another triangle (i.e. to sub divide the quad as shown in Figure 2-7).
-	Figure 1ñ7: Vertex ordering for quad subdivision 1432
-	1-63D GraphicsFile FormatsFigure 1ñ8: PolygonVertex 0     Vertex 1     Vertex 2     Vertex 3     Normal 0     Normal 1     Normal
+	Figure 1‚Äì7: Vertex ordering for quad subdivision 1432
+	1-63D GraphicsFile FormatsFigure 1‚Äì8: PolygonVertex 0     Vertex 1     Vertex 2     Vertex 3     Normal 0     Normal 1     Normal
 	2
 	Normal 3FlagStraight line
 	The parameter section describes the vertex numbers of two end points.
-	Figure 1ñ9: Straight LineVertex 0     Vertex 1     Vertex 2     Vertex 3     Normal 0     Normal 1     Normal 2     Normal 3FlagSpriteA sprite in model data is rectangular image data located in a 3D space. It can be considered to be atextured polygon always facing the visual point.The parameter section describes vertices indicating sprite positions, and the width and height of images(sprite patterns).Figure 1ñ10: Sprite
+	Figure 1‚Äì9: Straight LineVertex 0     Vertex 1     Vertex 2     Vertex 3     Normal 0     Normal 1     Normal 2     Normal 3FlagSpriteA sprite in model data is rectangular image data located in a 3D space. It can be considered to be atextured polygon always facing the visual point.The parameter section describes vertices indicating sprite positions, and the width and height of images(sprite patterns).Figure 1‚Äì10: Sprite
 
 #endif
 
@@ -1058,10 +1149,10 @@ g_scale=20.0;
 
 	for(i=0;i<g_total_faces; i++)
 	{
-		if(g_face_arr[i].pnt[3].vert>0) // 1=quad
+		if(g_face_arr[i].pnt[3].vert>=0) // 1=quad
 		{
 
-			sprintf( line, "%d   %d %d %d %d  %d %d %d %d\n",
+			sprintf( line, "%d %d %d %d %d  %d %d %d %d\n",
 					1, g_face_arr[i].pnt[3].vert, g_face_arr[i].pnt[2].vert, g_face_arr[i].pnt[0].vert, g_face_arr[i].pnt[1].vert, i, i, i, i
 			);
 		}
@@ -1111,7 +1202,9 @@ g_scale=20.0;
 	fflush(PLY_fp);
 	fclose(PLY_fp);
 
-	print("%s created correctly.\n", filename);
+	printf("%s created correctly.\n", filename);
+
+	return 0;
 
 }
 
@@ -1151,8 +1244,8 @@ int create_MAT(void)
 	{
 
 		//fail
-		print("Could not create file <%s>\n",filename);
-		return 999;
+		printf("Could not create file <%s>\n",filename);
+		return -1;
 	}
 
 
@@ -1189,12 +1282,12 @@ int create_MAT(void)
 
 	Shading: F (G not supported)
 	This is an ASCII character indicating the shading mode.
-	ìFî = Flat shading (shading is based on the normal for the first vertex of the polygon, as specified in the PLYfile)
-	ìGî = Smooth shading Material information The format of the remainder of each line is different dpending on the material type.
+	‚ÄúF‚Äù = Flat shading (shading is based on the normal for the first vertex of the polygon, as specified in the PLYfile)
+	‚ÄúG‚Äù = Smooth shading Material information The format of the remainder of each line is different dpending on the material type.
 
 	Material info: C, T or D
 	There are several different material types. Each is designated by a special type code, as follows:
-	Table 1ñ2 Type Meaning
+	Table 1‚Äì2 Type Meaning
 	C Colored polygon/straight line, no texture
 	G Gradient filled polygon/straight line, no texture
 	T Textured polygon/sprite
@@ -1253,11 +1346,21 @@ int create_MAT(void)
 				int quad;
 
 
-				if(g_face_arr[i].pnt[3].vert>0)
+				if(g_face_arr[i].pnt[3].vert>=0)
+				{
 					quad = 1;
+					sprintf(RGB_str, "#quad: %d winding: 4312\n", i);
+					fwrite(RGB_str,  strlen(RGB_str),1, MAT_fp ); //type
+				}
 				else
+				{
 					quad = 0;
+					sprintf(RGB_str, "#tri: %d winding: 321\n", i);
+				}
 
+
+
+				// fwrite(RGB_str,  strlen(RGB_str),1, MAT_fp ); //type
 
 				// default colour?
 				sprintf(RGB_str, " %d %d %d ", 126,126,126);
@@ -1285,8 +1388,8 @@ int create_MAT(void)
 					char texture[255];
 					float u1,v1, u2,v2, u3,v3, u4,v4;
 
-					// T or D
-					flag_material_c = 'T';
+					// T (textured only) , D (flat shaded with texture) or H (vert shaded with texture)
+
 
 
 					u1 = g_UV_arr[g_face_arr[i].pnt[0].uv].x;
@@ -1298,28 +1401,29 @@ int create_MAT(void)
 					u3 = g_UV_arr[g_face_arr[i].pnt[2].uv].x;
 					v3 = 1.0-g_UV_arr[g_face_arr[i].pnt[2].uv].y;
 
-					u4 = 0.0;
-					v4= 0.0;
+					u4 = g_UV_arr[g_face_arr[i].pnt[3].uv].x;
+					v4 = 1.0-g_UV_arr[g_face_arr[i].pnt[3].uv].y;
+
 					if(g_verbose)
 					{
-						print("%d UV0 %d  UV1 %d  UV2 %d  UV3 %d \n",i,
+						printf("%d UV0 %d  UV1 %d  UV2 %d  UV3 %d \n",i,
 								g_face_arr[i].pnt[0].uv,
 								g_face_arr[i].pnt[1].uv,
 								g_face_arr[i].pnt[2].uv,
 								g_face_arr[i].pnt[3].uv );
 
 #if 0
-						print("U %f V %f ", u1, v1);
-						print("U %f V %f ", u2, v2);
+						printf("U %f V %f ", u1, v1);
+						printf("U %f V %f ", u2, v2);
 
-						print("U %f V %f ", u3, v3);
-						print("U %f V %f \n", u4, v4);
+						printf("U %f V %f ", u3, v3);
+						printf("U %f V %f \n", u4, v4);
 						fflush(0);
 #endif
 					}
 
 
-					if(quad)
+					if(quad) // textured quad
 					{
 						//uvline  :=  Format(' %.0f %.0f    %.0f %.0f    %.0f %.0f    %.0f %.0f   ',
 						///[ ( map_w * (vtx4.y^) ),  ( map_h * (1.0-vtx4.z^) ) ,
@@ -1327,12 +1431,9 @@ int create_MAT(void)
 						//( map_w * (vtx1.y^) ),  ( map_h * (1.0-vtx1.z^) ) ,
 						//( map_w * (vtx2.y^) ),  ( map_h * (1.0-vtx2.z^) )  ]);
 
-						u4 = g_UV_arr[g_face_arr[i].pnt[3].uv].x;
-						v4 = 1.0-g_UV_arr[g_face_arr[i].pnt[3].uv].y;
 
-
-
-						sprintf(texture, "%d %d   %d %d   %d %d  %d %d",
+						////#quad: 0 winding: 4312
+						sprintf(texture, " %d %d   %d %d   %d %d  %d %d  ",
 								(int)	(mtl_p->tim_width*(u4)),
 								(int)	(mtl_p->tim_height*(v4)),
 								(int)	(mtl_p->tim_width*(u3)),
@@ -1344,19 +1445,16 @@ int create_MAT(void)
 						);
 
 					}
-					else
+					else // textured  tri polygon
 					{
 						// uvline   :=  Format(' %.0f %.0f    %.0f %.0f    %.0f %.0f    %.0f %.0f  ',
 						//[ ( map_w * (vtx3.y^) ),  ( map_h * (1.0-vtx3.z^) ) ,
 						//( map_w * (vtx2.y^) ),  ( map_h * (1.0-vtx2.z^) ) ,
 						//( map_w * (vtx1.y^) ),  ( map_h * (1.0-vtx1.z^) ) ,	0.0, 0.0  ]);
 
-						u4 = 0.0;
-						v4= 0.0;
 
-
-
-						sprintf(texture, "%d %d   %d %d   %d %d  %d %d",
+						//// tri  winding: 321
+						sprintf(texture, " %d %d   %d %d   %d %d  %d %d   ",
 								(int)	(mtl_p->tim_width*(u3)),
 								(int)	(mtl_p->tim_height*(v3)),
 								(int)	(mtl_p->tim_width*(u2)),
@@ -1370,17 +1468,262 @@ int create_MAT(void)
 					}
 
 
+					// test first for gradient
+
+					if( g_vert_arr[  g_face_arr[i].pnt[0].vert ].rgba.bits[0] |  g_vert_arr[  g_face_arr[i].pnt[1].vert ].rgba.bits[0] | g_vert_arr[  g_face_arr[i].pnt[2].vert ].rgba.bits[0] | g_vert_arr[  g_face_arr[i].pnt[3].vert ].rgba.bits[0] )
+					{
+
+						//#quad: 0 winding: 4312
+						if(quad)  // 3 2 0 1  don't get the ordering??
+						{
+							//quad text test first for gradient
+
+							if(g_verbose)
+								printf("Contains vert col <%s>\n",filename);
+							/*
+							 *
+									Figure 1‚Äì17:
+									Gradation Textured
+									Polygon TYPE TNO  U0 V0   U1 V1   U2 V2   U3 V3   R0 G0 B0   R1 G1 B1   R2 G2 B2  R3 G3 B3
+							 *
+							 */
 
 
-					if(isRGB_used) // has RBG been set?
+							// H - Gradient (shaded) textured polygon
+							flag_material_c = 'H';
+
+							// vert 1
+							{
+								char temp[512]={0};
+								unsigned int r,g,b;
+
+								r =  g_vert_arr[ g_face_arr[i].pnt[3].vert ].rgba.col.r * 255.0;
+								g =  g_vert_arr[ g_face_arr[i].pnt[3].vert ].rgba.col.g * 255.0;
+								b =  g_vert_arr[ g_face_arr[i].pnt[3].vert ].rgba.col.b * 255.0;
+
+
+								sprintf(temp, "  %d %d %d ", r, g, b );
+
+
+								if(g_verbose)
+									printf("v1 %s ", temp );
+
+								sprintf(RGB_str, " %s ", temp );
+
+
+							}
+
+
+
+
+
+							// vert 2
+							{
+								char temp[512]={0};
+								unsigned int r,g,b;
+
+								r =  g_vert_arr[ g_face_arr[i].pnt[2].vert ].rgba.col.r * 255.0;
+								g =  g_vert_arr[ g_face_arr[i].pnt[2].vert ].rgba.col.g * 255.0;
+								b =  g_vert_arr[ g_face_arr[i].pnt[2].vert ].rgba.col.b * 255.0;
+
+
+								sprintf(temp, "  %d %d %d ", r, g, b );
+
+
+								if(g_verbose)
+									printf("v2 %s ", temp );
+
+								sprintf(RGB_str, "%s %s ",RGB_str, temp );
+
+
+							}
+
+
+
+							// vert 3
+							{
+								char temp[512]={0};
+								unsigned int r,g,b;
+
+								r =  g_vert_arr[ g_face_arr[i].pnt[0].vert ].rgba.col.r * 255.0;
+								g =  g_vert_arr[ g_face_arr[i].pnt[0].vert ].rgba.col.g * 255.0;
+								b =  g_vert_arr[ g_face_arr[i].pnt[0].vert ].rgba.col.b * 255.0;
+
+
+								sprintf(temp, "  %d %d %d ", r, g, b );
+
+								if(g_verbose)
+									printf("v3 %s ", temp );
+
+								sprintf(RGB_str, "%s %s ",RGB_str, temp );
+
+
+							}
+
+
+							// vert 4
+							{
+
+								char temp[512]={0};
+								unsigned int r,g,b;
+
+								r =  g_vert_arr[ g_face_arr[i].pnt[1].vert ].rgba.col.r * 255.0;
+								g =  g_vert_arr[ g_face_arr[i].pnt[1].vert ].rgba.col.g * 255.0;
+								b =  g_vert_arr[ g_face_arr[i].pnt[1].vert ].rgba.col.b * 255.0;
+
+
+								sprintf(temp, "  %d %d %d ", r, g, b );
+
+								if(g_verbose)
+									printf("v4 %s ", temp );
+
+								sprintf(RGB_str, "%s %s ",RGB_str, temp );
+							}
+
+							if(g_verbose)
+								printf("\n QUAD TEXTURED RGB=:  %s \n", RGB_str );
+
+
+
+
+							sprintf(material_str, "%d %d   G  %c   %d     %s   %s \n",
+									i,
+									flag_light,
+									// G
+									// TYPE TNO  U0 V0   U1 V1   U2 V2   U3 V3   R0 G0 B0   R1 G1 B1   R2 G2 B2  R3 G3 B3
+									flag_material_c,
+									g_face_arr[i].mtl,
+									texture,
+									RGB_str
+							);
+
+						}//quad text test first for gradient
+						else
+						{ // tri 2 1 0 #tri: ' + temp + ' winding: 321 210
+							//tri text test first for gradient
+
+							if(g_verbose)
+								printf("Contains vert col <%s>\n",filename);
+							/*
+							 *
+							Figure 1‚Äì17:
+							Gradation Textured
+							Polygon TYPE TNO  U0 V0   U1 V1   U2 V2   U3 V3   R0 G0 B0   R1 G1 B1   R2 G2 B2  R3 G3 B3
+							 *
+							 */
+
+
+							// H - Gradient (shaded) textured polygon
+							flag_material_c = 'H';
+
+							// vert 1
+							{
+								char temp[512]={0};
+								unsigned int r,g,b;
+
+								r =  g_vert_arr[ g_face_arr[i].pnt[2].vert ].rgba.col.r * 255.0;
+								g =  g_vert_arr[ g_face_arr[i].pnt[2].vert ].rgba.col.g * 255.0;
+								b =  g_vert_arr[ g_face_arr[i].pnt[2].vert ].rgba.col.b * 255.0;
+
+
+								sprintf(temp, "  %d %d %d ", r, g, b );
+
+
+								if(g_verbose)
+									printf("v1 %s ", temp );
+
+								sprintf(RGB_str, " %s ", temp );
+
+
+							}
+
+
+
+
+
+							// vert 2
+							{
+								char temp[512]={0};
+								unsigned int r,g,b;
+
+								r =  g_vert_arr[ g_face_arr[i].pnt[1].vert ].rgba.col.r * 255.0;
+								g =  g_vert_arr[ g_face_arr[i].pnt[1].vert ].rgba.col.g * 255.0;
+								b =  g_vert_arr[ g_face_arr[i].pnt[1].vert ].rgba.col.b * 255.0;
+
+
+								sprintf(temp, "  %d %d %d ", r, g, b );
+
+								if(g_verbose)
+									printf("v2 %s ", temp );
+
+
+								sprintf(RGB_str, "%s %s ",RGB_str, temp );
+
+
+							}
+
+
+
+
+
+							// vert 3
+
+							{
+
+								char temp[512]={0};
+								unsigned int r,g,b;
+
+								r =  g_vert_arr[ g_face_arr[i].pnt[0].vert ].rgba.col.r * 255.0;
+								g =  g_vert_arr[ g_face_arr[i].pnt[0].vert ].rgba.col.g * 255.0;
+								b =  g_vert_arr[ g_face_arr[i].pnt[0].vert ].rgba.col.b * 255.0;
+
+
+								sprintf(temp, "  %d %d %d ", r, g, b );
+
+								if(g_verbose)
+									printf("v4 %s ", temp );
+
+								sprintf(RGB_str, "%s %s ",RGB_str, temp );
+							}
+
+
+
+							sprintf(RGB_str, "%s %s ",RGB_str, " 0 0 0 " ); // last vert RGB must have values
+
+
+							if(g_verbose)
+								printf("\n TRI TEXTURED RGB=:  %s \n", RGB_str );
+
+
+
+
+							sprintf(material_str, "%d %d   G  %c   %d     %s   %s \n",
+									i,
+									flag_light,
+									// G
+									// TYPE TNO  U0 V0   U1 V1   U2 V2   U3 V3   R0 G0 B0   R1 G1 B1   R2 G2 B2  R3 G3 B3
+									flag_material_c,
+									g_face_arr[i].mtl,
+									texture,
+									RGB_str
+							);
+
+
+						}//	//tri text test first for gradient
+
+
+					} //		no gradient
+
+					else if(isRGB_used) // Flat RBG with texture set?
 					{
 						flag_material_c = 'D';
 
-						//D TNO U0 V0  U1 V1  U2 V2 U3 V3  R  G   B
+
 						sprintf(material_str, "%d %d   F   %c  %d   %s   %s \n",
 								i,
 								flag_light,
 								// F
+								//D TNO U0 V0  U1 V1  U2 V2 U3 V3  R  G   B
 								flag_material_c,
 								g_face_arr[i].mtl,
 								texture,
@@ -1394,7 +1737,7 @@ int create_MAT(void)
 
 						//# lit F T TNO U0 V0  U1 V1  U2 V2 U3 V3
 
-						sprintf(material_str, "%d %d   F  %c  %d   %s  \n",
+						sprintf(material_str, "%d %d F  %c   %d  %s  \n",
 								i,
 								flag_light,
 								// F
@@ -1406,19 +1749,151 @@ int create_MAT(void)
 					}
 
 
+
 				}
 				else // no texture just a colour
 				{
-					// C  R G B
-					flag_material_c = 'C';
 
-					sprintf(material_str, "%d %d   F  %c  %s \n",
-							i,
-							flag_light,
-							// F
-							flag_material_c,
-							RGB_str
-					);
+
+
+
+					//test first for
+					// G Gradient filled polygon/straight line, no texture
+					if( g_vert_arr[  g_face_arr[i].pnt[0].vert ].rgba.bits[0] |  g_vert_arr[  g_face_arr[i].pnt[1].vert ].rgba.bits[0] | g_vert_arr[  g_face_arr[i].pnt[2].vert ].rgba.bits[0] | g_vert_arr[  g_face_arr[i].pnt[3].vert ].rgba.bits[0] )
+					{
+
+						if(g_verbose)
+							printf("Contains vert col <%s>\n",filename);
+						/*
+						 *
+ Figure 1‚Äì14:
+ TYPE R0 G0 B0 R1 G1 B1 R2 G2 G3 R3 G3 B3
+ Texture not Supported (Gradation colored polygon/straight line)  R0              G0             B0              R1              G1              B1                ...                R3               G3              B3TYPETYPE:  Material type, whose value is "G"Rn, Gn, Bn:    RGB components of the n-th vertex. For a triangular polygon,the RGB value of the fourth vertex is 0, 0, 0
+
+						 *
+						 */
+						// G Gradient filled polygon/straight line, no texture
+						flag_material_c = 'G';
+
+						// vert 1
+						{
+							char temp[512]={0};
+							unsigned int r,g,b;
+
+							r =  g_vert_arr[ g_face_arr[i].pnt[3].vert ].rgba.col.r * 255.0;
+							g =  g_vert_arr[ g_face_arr[i].pnt[3].vert ].rgba.col.g * 255.0;
+							b =  g_vert_arr[ g_face_arr[i].pnt[3].vert ].rgba.col.b * 255.0;
+
+
+							sprintf(temp, "  %d %d %d ", r, g, b );
+
+
+							if(g_verbose)
+								printf("v1 %s ", temp );
+
+							sprintf(RGB_str, " %s ", temp );
+
+
+						}
+
+
+
+
+
+						// vert 2
+						{
+							char temp[512]={0};
+							unsigned int r,g,b;
+
+							r =  g_vert_arr[ g_face_arr[i].pnt[2].vert ].rgba.col.r * 255.0;
+							g =  g_vert_arr[ g_face_arr[i].pnt[2].vert ].rgba.col.g * 255.0;
+							b =  g_vert_arr[ g_face_arr[i].pnt[2].vert ].rgba.col.b * 255.0;
+
+
+							sprintf(temp, "  %d %d %d ", r, g, b );
+
+							if(g_verbose)
+								printf("v2 %s ", temp );
+
+							sprintf(RGB_str, "%s %s ",RGB_str, temp );
+
+
+						}
+
+
+
+						// vert 3
+						{
+							char temp[512]={0};
+							unsigned int r,g,b;
+
+							r =  g_vert_arr[ g_face_arr[i].pnt[0].vert ].rgba.col.r * 255.0;
+							g =  g_vert_arr[ g_face_arr[i].pnt[0].vert ].rgba.col.g * 255.0;
+							b =  g_vert_arr[ g_face_arr[i].pnt[0].vert ].rgba.col.b * 255.0;
+
+
+							sprintf(temp, "  %d %d %d ", r, g, b );
+
+							if(g_verbose)
+								printf("v3 %s ", temp );
+
+							sprintf(RGB_str, "%s %s ",RGB_str, temp );
+
+
+						}
+
+
+						// vert 4
+						if(g_face_arr[i].pnt[3].vert>0) // 1=quad
+						{
+
+							char temp[512]={0};
+							unsigned int r,g,b;
+
+							r =  g_vert_arr[ g_face_arr[i].pnt[1].vert ].rgba.col.r * 255.0;
+							g =  g_vert_arr[ g_face_arr[i].pnt[1].vert ].rgba.col.g * 255.0;
+							b =  g_vert_arr[ g_face_arr[i].pnt[1].vert ].rgba.col.b * 255.0;
+
+
+							sprintf(temp, "  %d %d %d ", r, g, b );
+
+							if(g_verbose)
+								printf("v4 %s ", temp );
+
+							sprintf(RGB_str, "%s %s ",RGB_str, temp );
+						}
+						else
+							sprintf(RGB_str, "%s %s ",RGB_str, " 0 0 0 " ); // last vert RGB must have values
+
+						if(g_verbose)
+							printf("\n RGB=:  %s \n", RGB_str );
+
+
+
+						sprintf(material_str, "%d %d   G  %c  %s \n",
+								i,
+								flag_light,
+								// G
+								flag_material_c,
+								RGB_str
+						);
+
+
+					}
+					else // no vert cols
+					{
+						// 	C Colored polygon/straight line, no texture
+						// C  R G B
+						flag_material_c = 'C';
+
+						sprintf(material_str, "%d %d   F  %c  %s \n",
+								i,
+								flag_light,
+								// F
+								flag_material_c,
+								RGB_str
+						);
+					}
 				}
 
 
@@ -1430,6 +1905,7 @@ int create_MAT(void)
 				fwrite(material_str,  strlen(material_str),1, MAT_fp ); //write size with the same alignment
 
 
+				fflush(stdout);
 			}
 
 
@@ -1437,8 +1913,9 @@ int create_MAT(void)
 			fflush(MAT_fp);
 			fclose(MAT_fp);
 
-			print("%s created correctly.\n", filename);
+			printf("%s created correctly.\n", filename);
 
+			return 0;
 }
 
 
@@ -1451,7 +1928,7 @@ int mtllib(char *filename)
 	char *str_p;
 
 	if(g_verbose)
-		print("Processing mtllib file <%s>\n",filename);
+		printf("Processing mtllib file <%s>\n",filename);
 
 
 	mat_fp = fcaseopen(filename, "rb");
@@ -1459,15 +1936,15 @@ int mtllib(char *filename)
 	{
 
 		//fail
-		print("Could not open mtllib file <%s>\n",filename);
-		return 999;
+		printf("Could not open mtllib file <%s>\n",filename);
+		return -1;
 	}
 
 	// Read script into RAM
 	file_size = file_length(mat_fp);
 
 	if(g_verbose)
-		print("mtllib file <%s> opened, size %d\n", filename, file_size);
+		printf("mtllib file <%s> opened, size %d\n", filename, file_size);
 
 	g_mtl_count=-1;
 
@@ -1509,7 +1986,7 @@ int g_mtl_count;
 			continue;// blank line or comment
 
 
-		//	print("%s\n", mat_line);
+		//	printf("%s\n", mat_line);
 
 
 
@@ -1525,13 +2002,13 @@ int g_mtl_count;
 			str_p = trim(str_p+strlen( "newmtl"));
 
 			if(g_verbose)
-				print("Processing newmtl: <%s> <%d>\n", str_p, g_mtl_count);
+				printf("Processing newmtl: <%s> <%d>\n", str_p, g_mtl_count);
 
 			g_mtl_arr[g_mtl_count].newmtl = malloc(strlen(str_p)+1);
 			strcpy(g_mtl_arr[g_mtl_count].newmtl ,str_p);
 
 
-			//newmtl bowser~256x256x8
+			//newmtl bowser~255x255x8
 
 			str_p = strstr(str_p, "~");
 			if(str_p) // ~widthxhieghtxbitwidth
@@ -1548,17 +2025,17 @@ int g_mtl_count;
 
 
 				pch = strtok (str_p,"x");
-				// print("\n pch: %s\n", pch);
+				// printf("\n pch: %s\n", pch);
 				w = atoi(pch ) ;
 
 
 				pch = strtok (NULL,"x");
-				// print("\n pch: %s\n", pch);
+				// printf("\n pch: %s\n", pch);
 				h = atoi(pch ) ;
 
 
 				pch = strtok (NULL,"x");
-				// print("\n pch: %s\n", pch);
+				// printf("\n pch: %s\n", pch);
 				d = atoi(pch ) ;
 
 				g_mtl_arr[g_mtl_count].tim_height=h;
@@ -1566,6 +2043,11 @@ int g_mtl_count;
 				g_mtl_arr[g_mtl_count].tim_depth=d;
 
 
+			}
+			else
+			{	//fail
+				printf("Bad %s! Material name (the newmtl field) must have the texture details after ~\n It should look like this: newmtl Material~255x255x8",filename);
+				return -1;
 			}
 
 			continue;
@@ -1598,8 +2080,8 @@ int g_mtl_count;
 
 			if(g_mtl_count==-1)
 			{
-				print("ERROR: File %s - Sections must start with newmtl.\n", filename);
-				return 999;
+				printf("ERROR: File %s - Sections must start with newmtl.\n", filename);
+				return -1;
 
 			}
 
@@ -1613,7 +2095,7 @@ int g_mtl_count;
 			}
 
 			if(g_verbose)
-				print("g_TEXT_count: %d file <%s>\n", g_mtl_count, g_mtl_arr[g_mtl_count].map_Kd);
+				printf("g_TEXT_count: %d file <%s>\n", g_mtl_count, g_mtl_arr[g_mtl_count].map_Kd);
 
 
 			continue;
@@ -1629,14 +2111,14 @@ int g_mtl_count;
 
 			if(g_mtl_count==-1)
 			{
-				print("ERROR: File %s - Sections must start with newmtl.\n", filename);
-				return 999;
+				printf("ERROR: File %s - Sections must start with newmtl.\n", filename);
+				return -1;
 
 			}
 			str_p = trim(str_p+strlen( "Kd"));
 
 			if(g_verbose)
-				print("Processing Kd: <%s> <%d>\n", str_p, g_mtl_count);
+				printf("Processing Kd: <%s> <%d>\n", str_p, g_mtl_count);
 
 
 			sscanf(str_p, "%f %f %f",
@@ -1654,6 +2136,8 @@ int g_mtl_count;
 
 	g_mtl_count++;
 
+
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -1667,9 +2151,9 @@ int main(int argc, char *argv[])
 	g_scale = 1.0;
 	g_current_mtl=g_mtl_count=linestotal=g_verbose =0;
 
-	print("\n%s\nobj2rsd obj [-s1.0] [-v]\n"
+	printf("\n%s\nobj2rsd obj [-s1.0] [-v]\n"
 			"  obj is your .obj 3D model file\n"
-			"   -s1.0 is a float value to scale model up or down, default is no scale 1.0.\n"
+			"   -s1.0 is a float value to scale model up or down, default is no scale (1.0) .\n"
 			"   -v is debug/verbose output.\n"
 			"See readme.md.\n"
 			"\n",OBJ2RSD_VERSION);
@@ -1699,9 +2183,9 @@ int main(int argc, char *argv[])
 
 	if(strlen(g_filename) > 7)
 	{
-		print("WARNING! Filename: <%s> is bigger than 8 char... trimming\n", g_filename);
+		printf("WARNING! Filename: <%s> is bigger than 8 char... trimming\n", g_filename);
 		g_filename[8] = 0; // remove .obj
-		print("New output Filename: <%s> \n", g_filename);
+		printf("New output Filename: <%s> \n", g_filename);
 
 	}
 
@@ -1719,7 +2203,7 @@ int main(int argc, char *argv[])
 			p++;
 			if(g_verbose)
 			{
-				print("Scale %s\n",p);
+				printf("Scale %s\n",p);
 				fflush(0);
 			}
 			g_scale = (float) strtod(p, NULL);
@@ -1739,7 +2223,7 @@ int main(int argc, char *argv[])
 			p++;
 			if(g_verbose)
 			{
-				print("Scale %s\n",p);
+				printf("Scale %s\n",p);
 			}
 			g_scale = (float) strtod(p, NULL);
 		}
@@ -1755,7 +2239,7 @@ int main(int argc, char *argv[])
 	{
 
 		//fail
-		print("Could not open file <%s>\n", argv[1]);
+		printf("Could not open file <%s>\n", argv[1]);
 		return 999;
 	}
 
@@ -1765,13 +2249,13 @@ int main(int argc, char *argv[])
 	obj_size = file_length(obj_fp);
 
 	if(g_verbose)
-		print("File <%s> opened, size %d\n", argv[1], obj_size);
+		printf("File <%s> opened, size %d\n", argv[1], obj_size);
 
 
 	// fread((char *)obj_buffer, obj_size, 1, obj_fp);
 
 	if(g_verbose)
-		print("Processing mtllib files...\n");
+		printf("Processing mtllib files...\n");
 
 	// do mtllib files.
 	while( !feof(obj_fp) )
@@ -1797,7 +2281,11 @@ int main(int argc, char *argv[])
 		if(str_p)
 		{
 			str_p = trim(str_p+strlen( "mtllib"));
-			mtllib(str_p);
+
+			if(mtllib(str_p))
+				exit(-1);
+
+
 			break;
 
 		}
@@ -1812,7 +2300,7 @@ int main(int argc, char *argv[])
 	linestotal=0;
 
 	if(g_verbose)
-		print("Storing all verts, UVs and normals...\n");
+		printf("Storing all verts, UVs and normals...\n");
 
 	// process all primatives.
 	while( !feof(obj_fp) )
@@ -1835,24 +2323,26 @@ int main(int argc, char *argv[])
 		{
 
 			if(g_verbose)
-				print("line: %d %s Vert: ", linestotal,str_p);
+				printf("line: %d %s Vert: ", linestotal,str_p);
 
 			process_primative(V_TYPE, str_p+2);
 		}
 		else if(str_p[0] == 'v' && str_p[1] == 't')
 		{
 			if(g_verbose)
-				print("line: %d %s UV: ",  linestotal,str_p);
+				printf("line: %d %s UV: ",  linestotal,str_p);
 
 			process_primative(VT_TYPE, str_p+2);
 		}
 		else if(str_p[0] == 'v' && str_p[1] == 'n')
 		{
 			if(g_verbose)
-				print("line: %d %s Normal: ", linestotal, str_p);
+				printf("line: %d %s Normal: ", linestotal, str_p);
 
 			process_primative(VN_TYPE, str_p+2);
 		}
+
+		fflush(stdout);
 
 	}
 
@@ -1863,7 +2353,7 @@ int main(int argc, char *argv[])
 	g_current_mtl = 0; // default first entry
 
 	if(g_verbose)
-		print("Processing all faces...\n");
+		printf("Processing all faces...\n");
 
 	// process all faces.
 	while( !feof(obj_fp) )
@@ -1890,7 +2380,7 @@ int main(int argc, char *argv[])
 			str_p = trim(str_p+strlen( "usemtl"));
 
 			if(g_verbose)
-				print("line: %d <%s> \n", linestotal,str_p);
+				printf("line: %d <%s> \n", linestotal,str_p);
 
 			//g_current_mtl=g_mtl_count
 			for(j=0; j<g_mtl_count; j++)
@@ -1924,7 +2414,7 @@ int main(int argc, char *argv[])
 
 
 	if(g_verbose)
-		print("OBJ Stats- Verts: %d UVs: %d Normals: %d Faces: %d\n", g_total_verts, g_total_UVs, g_total_normals, g_total_faces);
+		printf("OBJ Stats- Verts: %d UVs: %d Normals: %d Faces: %d\n", g_total_verts, g_total_UVs, g_total_normals, g_total_faces);
 
 
 
@@ -1936,5 +2426,8 @@ int main(int argc, char *argv[])
 	create_GRP();
 	create_PLY();
 	create_MAT();
+
+
+	printf("Finished correctly.\n");
 
 }
